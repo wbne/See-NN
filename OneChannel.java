@@ -15,7 +15,6 @@ import javafx.beans.value.ObservableValue;
 import java.util.Scanner;
 import java.util.StringTokenizer;
 import java.io.File;
-import java.lang.ref.SoftReference;
 
 public class OneChannel extends Application
 {
@@ -41,16 +40,15 @@ public class OneChannel extends Application
     public static Label layernum; //label that says which layer the user is on
     public static Label chanSpars; //shows the single channel sparsity in a given layer
     public static Label layerSpars; //shows the entire layer sparsity
+    public static Label prelegend; //name of the file being rendered
     public static Button c; //go up a layer
     public static Button d; //go down a layer
 
     /* TODO (coding wise):
      * General cleanup and patching
      * make the disabled button more obvious ormaybe just have an audio queue happen
-     * add option to save the filename
-     * maybe have a drop down to select csv files locally?
-     * change file option
-     * maybe dynamic multithreading for the rendering
+     * add option to save the filename? (probably not)
+     * maybe dynamic multithreading for the rendering (probably not)
      * 
      * Things from meeting:
      * Try to eyeball patterns across multiple images
@@ -71,8 +69,8 @@ public class OneChannel extends Application
     {
         if(file_name.length() == 0 || file_name == null)
         {
-            SoftReference<FileInput> fi = new SoftReference<>(new FileInput());
-            file_name = fi.get().getFileName();
+            FileInput fi = new FileInput();
+            file_name = fi.getFileName();
         }
 
         //this just sets up the javafx window and the dimensions
@@ -110,7 +108,7 @@ public class OneChannel extends Application
         root.getChildren().add(hbox); //attaches it to the scene
 
         //The informational panel
-        Label prelegend = new Label("file name: " + file_name);
+        prelegend = new Label("file name: " + file_name);
         prelegend.setWrapText(true);
         prelegend.setMaxWidth(140);
         Label legend = new Label("zero values are white");
@@ -119,7 +117,8 @@ public class OneChannel extends Application
         layernum = new Label("Layer: " + (layer + 1) + "/" + max_layer); //tells the user which layer they're on
         chanSpars = new Label();
         layerSpars = new Label();
-        VBox sidePanel = new VBox(prelegend, ch, legend, legend2, layernum, chanSpars, layerSpars);
+        Button newFile = newFile();
+        VBox sidePanel = new VBox(prelegend, ch, legend, legend2, layernum, chanSpars, layerSpars, newFile);
         sidePanel.setLayoutX(layerLength + 5);
         root.getChildren().add(sidePanel);
 
@@ -147,7 +146,7 @@ public class OneChannel extends Application
                 catch(Exception e){System.out.println("error");}
             }
             enableButtons();
-            
+
             //checks to see the difference between the main thread and itself
             //then corrects to be equal
             if(layer < fr.getLayer())
@@ -363,6 +362,24 @@ public class OneChannel extends Application
                 }
             });
         return chMode;
+    }
+
+    private static Button newFile()
+    {
+        Button nu = new Button("New File");
+        nu.setOnAction(new EventHandler<ActionEvent>(){
+                @Override public void handle(ActionEvent e){
+                    FileInput fi = new FileInput();
+                    file_name = fi.getFileName();
+                    fr = new FileReader(file_name, max_layer);
+                    fr.start();
+                    layer = 0;
+                    SELECTED_CHANNEL = 0;
+                    prelegend.setText("filename: " + file_name);
+                    parseLayer();
+                }
+            });
+        return nu;
     }
 
     //reads the dimensions for the vgg19 dimensions
